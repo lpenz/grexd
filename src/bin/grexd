@@ -1,0 +1,21 @@
+#!/usr/bin/env python3
+"""
+A console regular expression editor
+"""
+
+import argparse
+import asyncio
+
+import grexd
+
+
+async def main() -> None:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument(
+        "--version", "-V", action="version", version="%(prog)s " + grexd.version()
+    )
+    parser.parse_args()
+
+
+if __name__ == "__main__":
+    asyncio.get_event_loop().run_until_complete(main())
