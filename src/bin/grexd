@@ -5,16 +5,127 @@ A console regular expression editor
 
 import argparse
 import asyncio
+import re
+from typing import Optional
 
 import grexd
+from prompt_toolkit import Application
+from prompt_toolkit.buffer import Buffer
+from prompt_toolkit.document import Document
+from prompt_toolkit.key_binding import KeyBindings
+from prompt_toolkit.key_binding.key_processor import KeyPressEvent
+from prompt_toolkit.layout import FormattedTextControl
+from prompt_toolkit.layout.containers import HSplit, Window
+from prompt_toolkit.layout.controls import BufferControl
+from prompt_toolkit.layout.layout import Layout
+from prompt_toolkit.styles import Style
+from prompt_toolkit.widgets import Frame
+
+E = KeyPressEvent
+
+
+class Fileview:
+    def __init__(self, filename: str):
+        self.filename = filename
+        with open(self.filename, "r") as fd:
+            self.contents = fd.read()
+        self.control = FormattedTextControl(text=[("class:unmatched", self.contents)])
+        self.win = Window(self.control)
+        self.done_event = asyncio.Event()
+        self.regex_queue: asyncio.Queue[str] = asyncio.Queue()
+        self.task = asyncio.create_task(self.loader())
+
+    def send_regex(self, regex_str: str) -> None:
+        self.regex_queue.put_nowait(regex_str)
+        if self.task.done():
+            self.task.result()
+
+    def stop(self) -> None:
+        self.task.cancel()
+
+    def update(self, regex_str: str) -> None:
+        regex = re.compile(regex_str, re.S)
+        try:
+            regex = re.compile(regex_str, re.S)
+        except re.error:
+            self.control.text = [("class:unmatched", self.contents)]
+            return
+        m = regex.search(self.contents)
+        if m:
+            start = m.start()
+            end = m.end()
+            self.control.text = [
+                ("class:unmatched", self.contents[0:start]),
+                ("class:matched", self.contents[start:end]),
+                ("class:unmatched", self.contents[end:]),
+            ]
+        else:
+            self.control.text = [("class:unmatched", self.contents)]
+
+    async def loader(self) -> None:
+        while not self.done_event.is_set():
+            regex_str = await self.regex_queue.get()
+            while not self.regex_queue.empty():
+                regex_str = await self.regex_queue.get()
+                self.regex_queue.task_done()
+            self.update(regex_str)
+            self.regex_queue.task_done()
+
+
+async def grexd_main(filename: str, regex_str: Optional[str] = None) -> None:
+    fileview = Fileview(filename)
+    regex_str = regex_str or ""
+    regex_buffer = Buffer(
+        document=Document(text=regex_str),
+        multiline=True,
+        on_text_changed=lambda buf: fileview.send_regex(buf.document.text),
+    )
+    regex_control = BufferControl(buffer=regex_buffer)
+    regex_win = Window(regex_control)
+    root_container = HSplit(
+        [
+            Frame(title=filename, body=fileview.win),
+            Frame(title="Regular expression", body=regex_win, height=7),
+        ]
+    )
+    layout = Layout(root_container)
+    layout.focus(regex_win)
+    if regex_str:
+        fileview.update(regex_str)
+    style = Style.from_dict({"matched": "bold fg:white bg:green"})
+    kb = KeyBindings()
+    app: Application[None] = Application(
+        layout=layout,
+        key_bindings=kb,
+        full_screen=True,
+        style=style,
+        mouse_support=True,
+    )
+
+    @kb.add("c-c")
+    @kb.add("c-d")
+    @kb.add("escape", "q")
+    def close(event: E) -> None:
+        fileview.stop()
+        app.exit()
+
+    await app.run_async()
 
 
 async def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
+        "--regex",
+        "-e",
+        default=None,
+        help="Initial regular expression",
+    )
+    parser.add_argument(
         "--version", "-V", action="version", version="%(prog)s " + grexd.version()
     )
-    parser.parse_args()
+    parser.add_argument("files", type=str, nargs=1, help="Files to match the regex")
+    args = parser.parse_args()
+    await grexd_main(args.files[0], regex_str=args.regex)
 
 
 if __name__ == "__main__":
