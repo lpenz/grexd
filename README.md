@@ -1,7 +1,7 @@
 [![CI](https://github.com/lpenz/grexd/actions/workflows/ci.yml/badge.svg)](https://github.com/lpenz/grexd/actions/workflows/ci.yml)
 [![coveralls](https://coveralls.io/repos/github/lpenz/grexd/badge.svg?branch=main)](https://coveralls.io/github/lpenz/grexd?branch=main)
 [![PyPI](https://img.shields.io/pypi/v/grexd)](https://pypi.org/project/grexd/)
-[![github](https://img.shields.io/github/v/release/lpenz/disk-img-tool?logo=github)](https://github.com/lpenz/disk-img-tool/releases)
+[![github](https://img.shields.io/github/v/release/lpenz/grexd?logo=github)](https://github.com/lpenz/grexd/releases)
 
 
 # grexd
