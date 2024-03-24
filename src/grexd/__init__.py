@@ -2,6 +2,9 @@
 
 import importlib.metadata
 
+from .hugefilevieweruicontrol import HugeFileViewerUIControl
+from .hugefileviewerwidget import HugeFileViewerWidget
+
 
 def version() -> str:
     return importlib.metadata.version("grexd")
@@ -9,4 +12,6 @@ def version() -> str:
 
 __all__ = [
     "version",
+    "HugeFileViewerUIControl",
+    "HugeFileViewerWidget",
 ]

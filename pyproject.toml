@@ -6,4 +6,5 @@ build-backend = "setuptools.build_meta"
 
 [tool.mypy]
 strict = true
-files = "src, src/bin/grexd, tests"
+scripts_are_modules = true
+files = "src, src/bin/*, tests"

@@ -1,0 +1,49 @@
+#!/usr/bin/env python3
+"""
+A visualizer for huge files
+
+This is mostly a test for the hugefileviewer prompt-toolkit widget and
+control.
+"""
+
+import argparse
+
+import grexd
+from prompt_toolkit import Application
+from prompt_toolkit.key_binding import KeyBindings
+from prompt_toolkit.key_binding.key_processor import KeyPressEvent
+from prompt_toolkit.layout.layout import Layout
+from prompt_toolkit.widgets import Frame
+
+E = KeyPressEvent
+
+
+def hugefileviewer_run(filename: str) -> None:
+    hugefileviewer = grexd.HugeFileViewerWidget(filename)
+    root_container = Frame(title=filename, body=hugefileviewer)
+    layout = Layout(root_container)
+    kb = KeyBindings()
+    app: Application[None] = Application(
+        layout=layout,
+        full_screen=True,
+        key_bindings=kb,
+        mouse_support=True,
+    )
+    kb.add("c-c")(lambda e: app.exit())
+    kb.add("c-d")(lambda e: app.exit())
+    kb.add("escape", "q")(lambda e: app.exit())
+    app.run()
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument(
+        "--version", "-V", action="version", version="%(prog)s " + grexd.version()
+    )
+    parser.add_argument("file", type=str, nargs=1, help="File to view")
+    args = parser.parse_args()
+    hugefileviewer_run(args.file[0])
+
+
+if __name__ == "__main__":
+    main()
